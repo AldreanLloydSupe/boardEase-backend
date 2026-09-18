@@ -1,0 +1,12 @@
+{
+  "name": "boardease-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "promote-admin": "node scripts/promote-admin.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  }
+}
+
