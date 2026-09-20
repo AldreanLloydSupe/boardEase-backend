@@ -1,0 +1,143 @@
+[debug] [2026-09-20T08:21:11.351Z] ----------------------------------------------------------------------
+[debug] [2026-09-20T08:21:11.354Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Hello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --project boardease-project --only firestore:rules
+[debug] [2026-09-20T08:21:11.354Z] CLI Version:   15.30.2
+[debug] [2026-09-20T08:21:11.354Z] Platform:      win32
+[debug] [2026-09-20T08:21:11.355Z] Node Version:  v22.18.0
+[debug] [2026-09-20T08:21:11.355Z] Detected Agent: codex_cli
+[debug] [2026-09-20T08:21:11.355Z] Time:          Sun Sep 20 2026 16:21:11 GMT+0800 (Singapore Standard Time)
+[debug] [2026-09-20T08:21:11.355Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-20T08:21:14.350Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-20T08:21:14.350Z] > authorizing via signed-in user (a.supe.143998.tc@umindanao.edu.ph)
+[debug] [2026-09-20T08:21:14.350Z] [iam] checking project boardease-project for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-09-20T08:21:14.361Z] Checked if tokens are valid: false, expires at: 1789891414282
+[debug] [2026-09-20T08:21:14.361Z] Checked if tokens are valid: false, expires at: 1789891414282
+[debug] [2026-09-20T08:21:14.362Z] > refreshing access token with scopes: []
+[debug] [2026-09-20T08:21:14.364Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-09-20T08:21:14.364Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-20T08:21:15.537Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-09-20T08:21:15.537Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-20T08:21:15.551Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions [none]
+[debug] [2026-09-20T08:21:15.552Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions  x-goog-user-project=boardease-project
+[debug] [2026-09-20T08:21:15.552Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-09-20T08:21:16.654Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions 200
+[debug] [2026-09-20T08:21:16.654Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'boardease-project'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-09-20T08:21:16.658Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:16.658Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:16.658Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) [none]
+[debug] [2026-09-20T08:21:17.972Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) 200
+[debug] [2026-09-20T08:21:17.973Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) {"name":"projects/boardease-project/databases/(default)","uid":"bd8f6538-a74e-4c17-9e4f-2fac147ccc90","createTime":"2026-09-19T02:08:14.301277Z","updateTime":"2026-09-19T02:08:14.301277Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-09-20T07:21:19.196983Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IIG4oovd/JYDMKT8lMnK+ZYD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-09-20T08:21:17.973Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:17.973Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:17.974Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test [none]
+[debug] [2026-09-20T08:21:17.974Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test [omitted]
+[debug] [2026-09-20T08:21:19.209Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test 200
+[debug] [2026-09-20T08:21:19.209Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-09-20T08:21:19.211Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:19.211Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:19.211Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases pageSize=10&pageToken=
+[debug] [2026-09-20T08:21:20.324Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases 200
+[debug] [2026-09-20T08:21:20.324Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases {"releases":[{"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/ab00a500-766c-47bc-92b0-428c1a8d2bff","createTime":"2026-09-19T02:08:18.894836Z","updateTime":"2026-09-20T07:04:13.103557Z"}]}
+[debug] [2026-09-20T08:21:20.324Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:20.324Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:20.324Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/ab00a500-766c-47bc-92b0-428c1a8d2bff [none]
+[debug] [2026-09-20T08:21:21.411Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/ab00a500-766c-47bc-92b0-428c1a8d2bff 200
+[debug] [2026-09-20T08:21:21.411Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/ab00a500-766c-47bc-92b0-428c1a8d2bff [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-09-20T08:21:21.412Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:21.412Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:21.412Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets [none]
+[debug] [2026-09-20T08:21:21.412Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets [omitted]
+[debug] [2026-09-20T08:21:22.554Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets 200
+[debug] [2026-09-20T08:21:22.554Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets {"name":"projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /users/{userId} {\n      allow read, write: if request.auth != null\n        && (request.auth.uid == userId || request.auth.token.admin == true);\n    }\n\n    match /rooms/{roomId} {\n      allow read: if request.auth != null;\n      allow write: if request.auth.token.admin == true;\n    }\n\n    match /applications/{applicationId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update, delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /tourRequests/{tourRequestId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update: if request.auth != null\n        && (\n          request.auth.token.admin == true\n          || (\n            resource.data.tenantId == request.auth.uid\n            && request.resource.data.tenantId == resource.data.tenantId\n            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])\n            && request.resource.data.status == 'cancelled'\n          )\n        );\n      allow delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /payments/{paymentId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update: if request.auth != null\n        && request.auth.token.admin == true;\n      allow delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /{document=**} {\n      allow read, write: if false;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-09-20T08:21:23.759327Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-09-20T08:21:22.554Z] [rules] created ruleset projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09
+[debug] [2026-09-20T08:21:22.554Z] [rules] releasing cloud.firestore with ruleset projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09
+[debug] [2026-09-20T08:21:22.555Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:22.555Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:21:22.555Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore [none]
+[debug] [2026-09-20T08:21:22.555Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore {"release":{"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09"}}
+[debug] [2026-09-20T08:21:23.708Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore 200
+[debug] [2026-09-20T08:21:23.708Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore {"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09","createTime":"2026-09-19T02:08:18.894836Z","updateTime":"2026-09-20T08:21:24.912685Z"}
+[debug] [2026-09-20T08:21:23.708Z] [rules] updated release projects/boardease-project/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/boardease-project/overview
+[debug] [2026-09-20T08:38:45.975Z] ----------------------------------------------------------------------
+[debug] [2026-09-20T08:38:45.979Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Hello\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --project boardease-project --only firestore:rules
+[debug] [2026-09-20T08:38:45.980Z] CLI Version:   15.30.2
+[debug] [2026-09-20T08:38:45.980Z] Platform:      win32
+[debug] [2026-09-20T08:38:45.980Z] Node Version:  v22.18.0
+[debug] [2026-09-20T08:38:45.981Z] Detected Agent: codex_cli
+[debug] [2026-09-20T08:38:45.981Z] Time:          Sun Sep 20 2026 16:38:45 GMT+0800 (Singapore Standard Time)
+[debug] [2026-09-20T08:38:45.981Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-20T08:38:49.310Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-20T08:38:49.311Z] > authorizing via signed-in user (a.supe.143998.tc@umindanao.edu.ph)
+[debug] [2026-09-20T08:38:49.311Z] [iam] checking project boardease-project for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-09-20T08:38:49.326Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:49.326Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:49.328Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions [none]
+[debug] [2026-09-20T08:38:49.328Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions  x-goog-user-project=boardease-project
+[debug] [2026-09-20T08:38:49.329Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-09-20T08:38:50.503Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions 200
+[debug] [2026-09-20T08:38:50.504Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/boardease-project:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'boardease-project'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-09-20T08:38:50.510Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:50.510Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:50.511Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) [none]
+[debug] [2026-09-20T08:38:51.808Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) 200
+[debug] [2026-09-20T08:38:51.809Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/boardease-project/databases/(default) {"name":"projects/boardease-project/databases/(default)","uid":"bd8f6538-a74e-4c17-9e4f-2fac147ccc90","createTime":"2026-09-19T02:08:14.301277Z","updateTime":"2026-09-19T02:08:14.301277Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-09-20T07:38:53.057502Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IP3/5IHh/JYDMKT8lMnK+ZYD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-09-20T08:38:51.810Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:51.810Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:51.810Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test [none]
+[debug] [2026-09-20T08:38:51.811Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test [omitted]
+[debug] [2026-09-20T08:38:52.205Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test 200
+[debug] [2026-09-20T08:38:52.205Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-09-20T08:38:52.207Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:52.207Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:52.207Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases pageSize=10&pageToken=
+[debug] [2026-09-20T08:38:53.338Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases 200
+[debug] [2026-09-20T08:38:53.338Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/releases {"releases":[{"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09","createTime":"2026-09-19T02:08:18.894836Z","updateTime":"2026-09-20T08:21:24.912685Z"}]}
+[debug] [2026-09-20T08:38:53.339Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:53.339Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:53.339Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09 [none]
+[debug] [2026-09-20T08:38:53.787Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09 200
+[debug] [2026-09-20T08:38:53.788Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets/2ecc8f94-ad89-409a-97e1-b46fda3bed09 [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-09-20T08:38:53.789Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:53.789Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:53.789Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets [none]
+[debug] [2026-09-20T08:38:53.789Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets [omitted]
+[debug] [2026-09-20T08:38:54.974Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets 200
+[debug] [2026-09-20T08:38:54.975Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/boardease-project/rulesets {"name":"projects/boardease-project/rulesets/6e74a8ce-7f99-467a-8f04-591a029ebe94","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /users/{userId} {\n      allow read, write: if request.auth != null\n        && (request.auth.uid == userId || request.auth.token.admin == true);\n    }\n\n    match /rooms/{roomId} {\n      allow read: if request.auth != null;\n      allow write: if request.auth.token.admin == true;\n    }\n\n    match /applications/{applicationId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update, delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /tourRequests/{tourRequestId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update: if request.auth != null\n        && (\n          request.auth.token.admin == true\n          || (\n            resource.data.tenantId == request.auth.uid\n            && request.resource.data.tenantId == resource.data.tenantId\n            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])\n            && request.resource.data.status == 'cancelled'\n          )\n        );\n      allow delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /payments/{paymentId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update: if request.auth != null\n        && request.auth.token.admin == true;\n      allow delete: if request.auth != null\n        && request.auth.token.admin == true;\n    }\n\n    match /maintenanceRequests/{requestId} {\n      allow create: if request.auth != null\n        && request.resource.data.tenantId == request.auth.uid;\n      allow read: if request.auth != null\n        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);\n      allow update, delete: if request.auth != null\n        && (request.auth.token.admin == true || resource.data.tenantId == request.auth.uid);\n    }\n\n    match /{document=**} {\n      allow read, write: if false;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-09-20T08:38:56.199391Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-09-20T08:38:54.975Z] [rules] created ruleset projects/boardease-project/rulesets/6e74a8ce-7f99-467a-8f04-591a029ebe94
+[debug] [2026-09-20T08:38:54.975Z] [rules] releasing cloud.firestore with ruleset projects/boardease-project/rulesets/6e74a8ce-7f99-467a-8f04-591a029ebe94
+[debug] [2026-09-20T08:38:54.976Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:54.976Z] Checked if tokens are valid: true, expires at: 1789896074538
+[debug] [2026-09-20T08:38:54.976Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore [none]
+[debug] [2026-09-20T08:38:54.976Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore {"release":{"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/6e74a8ce-7f99-467a-8f04-591a029ebe94"}}
+[debug] [2026-09-20T08:38:55.464Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore 200
+[debug] [2026-09-20T08:38:55.464Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/boardease-project/releases/cloud.firestore {"name":"projects/boardease-project/releases/cloud.firestore","rulesetName":"projects/boardease-project/rulesets/6e74a8ce-7f99-467a-8f04-591a029ebe94","createTime":"2026-09-19T02:08:18.894836Z","updateTime":"2026-09-20T08:38:56.700291Z"}
+[debug] [2026-09-20T08:38:55.464Z] [rules] updated release projects/boardease-project/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/boardease-project/overview
