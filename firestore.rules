@@ -2,33 +2,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isLandlord() {
+      return signedIn() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'landlord'
+      );
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null
-        && (request.auth.uid == userId || request.auth.token.admin == true);
+      allow read: if signedIn() &&
+        (request.auth.uid == userId || isLandlord());
+      allow create: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.get('role', 'user') == 'user' &&
+        request.resource.data.get('hasRoom', false) == false;
+      allow update: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.get('role', 'user') == resource.data.get('role', 'user') &&
+        request.resource.data.get('hasRoom', false) == resource.data.get('hasRoom', false) &&
+        request.resource.data.get('roomId', null) == resource.data.get('roomId', null);
     }
 
     match /rooms/{roomId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.token.admin == true;
+      allow read: if signedIn();
+      allow write: if isLandlord();
     }
 
     match /applications/{applicationId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.tenantId == request.auth.uid;
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);
-      allow update, delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow read: if signedIn()
+        && (resource.data.tenantId == request.auth.uid || isLandlord());
+      allow update, delete: if isLandlord();
     }
 
     match /tourRequests/{tourRequestId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.tenantId == request.auth.uid;
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);
-      allow update: if request.auth != null
+      allow read: if signedIn()
+        && (resource.data.tenantId == request.auth.uid || isLandlord());
+      allow update: if signedIn()
         && (
-          request.auth.token.admin == true
+          isLandlord()
           || (
             resource.data.tenantId == request.auth.uid
             && request.resource.data.tenantId == resource.data.tenantId
@@ -36,28 +53,54 @@ service cloud.firestore {
             && request.resource.data.status == 'cancelled'
           )
         );
-      allow delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow delete: if isLandlord();
     }
 
     match /payments/{paymentId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.tenantId == request.auth.uid;
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);
-      allow update: if request.auth != null
-        && request.auth.token.admin == true;
-      allow delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow read: if signedIn()
+        && (resource.data.tenantId == request.auth.uid || isLandlord());
+      allow update, delete: if isLandlord();
     }
 
     match /maintenanceRequests/{requestId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.tenantId == request.auth.uid;
-      allow read: if request.auth != null
-        && (resource.data.tenantId == request.auth.uid || request.auth.token.admin == true);
-      allow update, delete: if request.auth != null
-        && (request.auth.token.admin == true || resource.data.tenantId == request.auth.uid);
+      allow read: if signedIn()
+        && (resource.data.tenantId == request.auth.uid || isLandlord());
+      allow update: if isLandlord() || (signedIn() &&
+        resource.data.tenantId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+        request.resource.data.status == 'cancelled');
+      allow delete: if isLandlord();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() &&
+        (resource.data.recipientId == request.auth.uid || isLandlord());
+      allow update: if signedIn() && resource.data.recipientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if isLandlord();
+    }
+
+    match /messages/{messageId} {
+      allow create: if isLandlord() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.body is string &&
+        request.resource.data.body.size() > 0 &&
+        request.resource.data.body.size() <= 2000 &&
+        request.resource.data.recipientIds is list &&
+        request.resource.data.recipientIds.size() > 0;
+      allow read: if isLandlord() ||
+        (signedIn() && request.auth.uid in resource.data.recipientIds);
+      allow update: if isLandlord();
+      allow delete: if isLandlord();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isLandlord();
+      allow write: if isLandlord();
     }
 
     match /{document=**} {

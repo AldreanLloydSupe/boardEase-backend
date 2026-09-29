@@ -1,6 +1,8 @@
 # BoardEase Firebase backend
 
-The mobile app connects directly to Firebase Authentication and Firestore using the Firebase web SDK. This folder contains the security rules and project configuration scaffold for the backend.
+The mobile app connects directly to Firebase Authentication and Firestore using the Firebase web SDK. The normal BoardEase setup uses only Authentication and Firestore, so it works on Firebase's free Spark plan.
+
+The optional `functions/` folder contains a future server-automation version. It is not included in the default Firebase configuration because Cloud Functions require the Blaze plan.
 
 ## Setup
 
@@ -9,8 +11,18 @@ The mobile app connects directly to Firebase Authentication and Firestore using 
 3. Apply the rules with the Firebase CLI after signing in:
 
 ```sh
-firebase deploy --only firestore:rules
+firebase deploy --project boardease-project --only firestore:rules,firestore:indexes
 ```
+
+The free-plan workflow is client-driven: tenant applications, tour requests, maintenance requests, payment proofs, landlord approval, and status changes are written directly to Firestore by the existing app. Any rent due notice can be calculated when the tenant opens the dashboard instead of using a scheduled function.
+
+If you later choose to enable billing, restore the optional services in `firebase.json` and deploy the automation:
+
+```sh
+firebase deploy --project boardease-project --only firestore:rules,firestore:indexes,functions
+```
+
+Cloud Storage is also excluded from the free-plan setup. Payment receipts currently use compressed Firestore data, avoiding Storage billing.
 
 New accounts receive a regular `user` profile and cannot open the landlord dashboard. Create the account with Firebase Authentication, then promote it with the Firebase Admin SDK:
 
