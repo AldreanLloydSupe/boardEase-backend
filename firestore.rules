@@ -76,6 +76,20 @@ service cloud.firestore {
       allow delete: if isLandlord();
     }
 
+    match /maintenanceRequests/{requestId}/messages/{messageId} {
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 2000;
+      allow read: if signedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        get(/databases/$(database)/documents/maintenanceRequests/$(requestId)).data.tenantId == request.auth.uid ||
+        isLandlord()
+      );
+      allow update, delete: if isLandlord();
+    }
+
     match /notifications/{notificationId} {
       allow read: if signedIn() &&
         (resource.data.recipientId == request.auth.uid || isLandlord());
