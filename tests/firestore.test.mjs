@@ -149,7 +149,7 @@ test("signup can save emergency contact without granting landlord rights", async
   await assertFails(setDoc(doc(newcomer,"users","forged"), { name:"Fake", role:"admin", hasRoom:true }));
 });
 test("room browsing and application queries work with owner filters", async () => {
-  await assertSucceeds(getDocs(collection(applicant,"rooms")));
+  await assertSucceeds(getDocs(query(collection(applicant,"rooms"),where("status","==","Available"))));
   const data = { tenantId:"applicant", tenantName:"Applicant", tenantEmail:"a@example.com", roomId:"available-room-id", roomNumber:"202", roomType:"Room", price:"4000", image:"", status:"pending", createdAt:serverTimestamp() };
   await assertSucceeds(getDoc(doc(applicant,"applications","applicant__available-room-id")));
   await assertSucceeds(setDoc(doc(applicant,"applications","applicant__available-room-id"), data));
