@@ -14,6 +14,7 @@ service cloud.firestore {
       return owns(data) && id == request.auth.uid + '__' + data.roomId &&
         data.status == 'pending' && data.createdAt == request.time &&
         room.status in ['Available','available'] && data.roomNumber == room.number &&
+        data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','requestedDate','note','status','createdAt']) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.hasRoom == false;
     }
     function pendingPayment(id) {
@@ -97,25 +98,26 @@ service cloud.firestore {
       allow get: if ownMissingDocument('applications', id);
       allow read: if isLandlord() || owns(resource.data);
       allow create: if signedIn() && availableRequest(id) &&
-        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','status','createdAt']);
+        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','status','createdAt']);
       allow update: if isLandlord() || (owns(resource.data) && resource.data.status == 'pending' &&
         request.resource.data.status == 'cancelled' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])) || (owns(resource.data) &&
         resource.data.status in ['rejected','cancelled','vacated'] &&
         request.resource.data.roomId == resource.data.roomId && availableRequest(id) &&
-        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','status','createdAt']));
-      allow delete: if isLandlord();
+        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','status','createdAt']));
+      allow delete: if isLandlord() ||
+        (owns(resource.data) && resource.data.status in ['approved','cancelled']);
     }
     match /tourRequests/{id} {
       allow get: if ownMissingDocument('tourRequests', id);
       allow read: if isLandlord() || owns(resource.data);
       allow create: if signedIn() && availableRequest(id) &&
-        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','requestedDate','note','status','createdAt']);
+        request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','requestedDate','note','status','createdAt']);
       allow update: if isLandlord() || (owns(resource.data) &&
         ((resource.data.status in ['pending','accepted'] &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']) &&
           request.resource.data.status == 'cancelled') ||
         (resource.data.status in ['declined','cancelled'] && request.resource.data.roomId == resource.data.roomId &&
-          availableRequest(id) && request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','requestedDate','note','status','createdAt']))));
+          availableRequest(id) && request.resource.data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','requestedDate','note','status','createdAt']))));
       allow delete: if isLandlord();
     }
     match /payments/{id} {

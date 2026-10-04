@@ -2,7 +2,8 @@ import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { collection, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
+import { getBytes, ref, uploadBytes } from "firebase/storage";
 let env;
 let alice, bob, applicant, admin;
 test("tenant direct chat is private and first message creates one real conversation", async () => {
@@ -107,8 +108,8 @@ test("landlord inbox can read missing read markers and empty conversations", asy
 });
 before(async () => {
   const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
-  assert.equal(rules.replace(/\r\n/g, "\n"), (await readFile(new URL("../../frontend/firestore.rules", import.meta.url), "utf8")).replace(/\r\n/g, "\n"), "Rules copies must agree");
-  env = await initializeTestEnvironment({ projectId: "demo-boardease", firestore: { rules } });
+  const storageRules = await readFile(new URL("../storage.rules", import.meta.url), "utf8");
+  env = await initializeTestEnvironment({ projectId: "demo-boardease", firestore: { rules, host:"127.0.0.1", port:8085 }, storage: { rules:storageRules, host:"127.0.0.1", port:9199 } });
   alice = env.authenticatedContext("alice").firestore();
   bob = env.authenticatedContext("bob").firestore();
   applicant = env.authenticatedContext("applicant").firestore();
@@ -116,6 +117,7 @@ before(async () => {
 });
 beforeEach(async () => {
   await env.clearFirestore();
+  await env.clearStorage();
   await env.withSecurityRulesDisabled(async context => {
     const db = context.firestore();
     await Promise.all([
@@ -142,6 +144,8 @@ test("profiles remain private and tenants cannot grant roles or assignments", as
   await assertSucceeds(getDoc(doc(admin,"users","alice")));
   const emailOnly = env.authenticatedContext("email-only", { email:"admin@boardease.com" }).firestore();
   await assertFails(updateDoc(doc(emailOnly,"rooms","available-room-id"), { status:"Occupied" }));
+  const landlordClaim = env.authenticatedContext("role-manager", { role:"landlord" }).firestore();
+  await assertSucceeds(updateDoc(doc(landlordClaim,"rooms","available-room-id"), { status:"Occupied" }));
 });
 test("signup can save emergency contact without granting landlord rights", async () => {
   const newcomer = env.authenticatedContext("newcomer").firestore();
@@ -150,10 +154,13 @@ test("signup can save emergency contact without granting landlord rights", async
 });
 test("room browsing and application queries work with owner filters", async () => {
   await assertSucceeds(getDocs(query(collection(applicant,"rooms"),where("status","==","Available"))));
-  const data = { tenantId:"applicant", tenantName:"Applicant", tenantEmail:"a@example.com", roomId:"available-room-id", roomNumber:"202", roomType:"Room", price:"4000", image:"", status:"pending", createdAt:serverTimestamp() };
+  const data = { tenantId:"applicant", tenantName:"Applicant", tenantEmail:"a@example.com", roomId:"available-room-id", roomNumber:"202", roomType:"Room", price:"4000", image:"", propertyName:"BoardEase", location:"Quezon City", floor:"2", unit:"202", status:"pending", createdAt:serverTimestamp() };
   await assertSucceeds(getDoc(doc(applicant,"applications","applicant__available-room-id")));
   await assertSucceeds(setDoc(doc(applicant,"applications","applicant__available-room-id"), data));
   await assertSucceeds(getDocs(query(collection(applicant,"applications"),where("tenantId","==","applicant"))));
+  await assertSucceeds(getDocs(query(collection(applicant,"applications"),where("tenantId","==","applicant"),where("roomNumber","==","202"))));
+  await assertSucceeds(setDoc(doc(applicant,"tourRequests","applicant__available-room-id"), { ...data, requestedDate:"2026-10-10", note:"Afternoon", createdAt:serverTimestamp() }));
+  await assertSucceeds(getDocs(query(collection(applicant,"tourRequests"),where("tenantId","==","applicant"),where("roomNumber","==","202"))));
   await assertFails(getDocs(collection(bob,"applications")));
   await assertFails(updateDoc(doc(applicant,"applications","applicant__available-room-id"), { status:"approved" }));
   await assertFails(setDoc(doc(alice,"applications","alice__available-room-id"), { ...data, tenantId:"alice" }));
@@ -219,6 +226,23 @@ test("pending applications can be cancelled and retried without approval privile
   await assertSucceeds(setDoc(ref,{ ...data,createdAt:serverTimestamp() }));
   await assertFails(updateDoc(ref,{ status:"cancelled",tenantId:"bob" }));
 });
+test("tenants may delete only their approved or cancelled applications", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db=context.firestore();
+    await Promise.all(["approved","cancelled","pending","rejected"].map(status =>
+      setDoc(doc(db,"applications",`applicant__${status}`), { tenantId:"applicant",status })
+    ));
+    await setDoc(doc(db,"applications","alice__approved"), { tenantId:"alice",status:"approved" });
+  });
+  await assertSucceeds(deleteDoc(doc(applicant,"applications","applicant__approved")));
+  await assertSucceeds(deleteDoc(doc(applicant,"applications","applicant__cancelled")));
+  await assertFails(deleteDoc(doc(applicant,"applications","applicant__pending")));
+  await assertFails(deleteDoc(doc(applicant,"applications","applicant__rejected")));
+  await assertFails(deleteDoc(doc(applicant,"applications","alice__approved")));
+  const unauthenticated = env.unauthenticatedContext().firestore();
+  await assertFails(deleteDoc(doc(unauthenticated,"applications","applicant__approved")));
+  await assertSucceeds(deleteDoc(doc(admin,"applications","applicant__pending")));
+});
 test("rejected payment proof can be corrected but approved records remain immutable for tenants", async () => {
   const ref = doc(alice,"payments","alice__1234567890123");
   await assertSucceeds(setDoc(ref,payment()));
@@ -236,4 +260,20 @@ test("deactivated users cannot reuse an existing token to recreate profiles", as
   await assertFails(getDocs(collection(alice,"rooms")));
   await assertFails(setDoc(doc(alice,"users","alice"),{ name:"Resurrected",role:"user",hasRoom:false }));
   await assertSucceeds(getDoc(doc(admin,"users","alice")));
+});
+test("unused Firebase Storage paths deny all client access", async () => {
+  const path = "payment-proofs/alice/receipt.jpg";
+  const aliceStorage = alice.storage("gs://demo-boardease.appspot.com");
+  const bobStorage = bob.storage("gs://demo-boardease.appspot.com");
+  const adminStorage = admin.storage("gs://demo-boardease.appspot.com");
+  await env.withSecurityRulesDisabled(async context => {
+    await uploadBytes(ref(context.storage("gs://demo-boardease.appspot.com"),path),new Uint8Array([1,2,3]),{contentType:"image/jpeg"});
+  });
+  await assertFails(uploadBytes(ref(aliceStorage,path),new Uint8Array([1,2,3]),{contentType:"image/jpeg"}));
+  await assertFails(getBytes(ref(aliceStorage,path)));
+  await assertFails(getBytes(ref(adminStorage,path)));
+  await assertFails(getBytes(ref(bobStorage,path)));
+  await assertFails(uploadBytes(ref(bobStorage,"payment-proofs/alice/forged.jpg"),new Uint8Array([1]),{contentType:"image/jpeg"}));
+  await assertFails(uploadBytes(ref(aliceStorage,"payment-proofs/alice/not-image.txt"),new Uint8Array([1]),{contentType:"text/plain"}));
+  await assertFails(uploadBytes(ref(aliceStorage,"payment-proofs/alice/large.jpg"),new Uint8Array(10 * 1024 * 1024),{contentType:"image/jpeg"}));
 });

@@ -111,16 +111,25 @@ export const assignApprovedApplication = onDocumentUpdated("applications/{applic
   const before = event.data?.before.data();
   const application = event.data?.after.data();
   if (!before || !application || before.status === "approved" || application.status !== "approved") return;
-  if (!application.tenantId || !application.roomNumber) return;
+  if (!application.tenantId || !application.roomId || !application.roomNumber) return;
 
-  const roomRef = db.collection("rooms").doc(String(application.roomNumber));
+  const roomRef = db.collection("rooms").doc(String(application.roomId));
   const tenantRef = db.collection("users").doc(String(application.tenantId));
-  await db.runTransaction(async (transaction) => {
+  const assigned = await db.runTransaction(async (transaction) => {
     const room = await transaction.get(roomRef);
+    const tenant = await transaction.get(tenantRef);
     const current = room.data();
-    if (current?.status === "Occupied" && current.tenantId && current.tenantId !== application.tenantId) {
+    const profile = tenant.data();
+    if (!current || !profile || String(current.number) !== String(application.roomNumber)) {
+      throw new Error("The requested room or tenant profile no longer exists.");
+    }
+    if (current.tenantId && current.tenantId !== application.tenantId) {
       throw new Error("The requested room is already occupied.");
     }
+    if (profile.hasRoom && profile.roomId !== application.roomId) {
+      throw new Error("The tenant is already assigned to another room.");
+    }
+    if (profile.hasRoom && profile.roomId === application.roomId) return false;
     transaction.set(roomRef, {
       number: String(application.roomNumber),
       type: application.roomType || "Room",
@@ -139,7 +148,9 @@ export const assignApprovedApplication = onDocumentUpdated("applications/{applic
       roomRent: application.price || "0",
       applicationId: event.params.applicationId,
     }, { merge: true });
+    return true;
   });
+  if (!assigned) return;
   await notify(application.tenantId, {
     type: "application_approved",
     title: "Application approved",

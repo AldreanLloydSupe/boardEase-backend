@@ -5,13 +5,15 @@
   "scripts": {
     "promote-admin": "node scripts/promote-admin.mjs",
     "delete-account": "node scripts/delete-account.mjs",
-    "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-boardease \"node --test tests/firestore.test.mjs\""
+    "lint": "node --check functions/index.js && node --check scripts/promote-admin.mjs && node --check scripts/delete-account.mjs && node --check tests/firestore.test.mjs",
+    "test:rules": "firebase emulators:exec --config firebase.test.json --only firestore,storage --project demo-boardease \"node --test tests/firestore.test.mjs\""
   },
   "dependencies": {
-    "firebase-admin": "^13.5.0"
+    "firebase-admin": "^14.5.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
-    "firebase": "^12.19.0"
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.32.1"
   }
 }

@@ -1,22 +1,35 @@
 # BoardEase backend
 
-BoardEase uses Firebase Authentication and Firestore on the Spark plan. The app writes applications, tour requests, maintenance conversations, payment proofs, and account review requests directly to Firestore. Cloud Functions and Firebase Storage are excluded from the deploy configuration.
+BoardEase uses Firebase Authentication and Firestore. The React Native app writes applications, tour requests, maintenance conversations, payment proofs, and account review requests directly to Firestore. It stores images as Firestore data URLs and does not use Firebase Storage. `functions/` contains optional Cloud Functions and is intentionally not wired into the deploy config: the app already performs approval/notification workflows, and enabling the triggers would duplicate them. Scheduled Functions also require a billing-enabled project.
 
-## Set up and publish rules
+## Local setup
 
-Enable Email/Password Authentication and Firestore, then fill in the frontend Firebase environment variables. Deploy from this backend directory:
+Use Node.js 20 or newer, Java 21, and the Firebase CLI installed by `npm install`. Enable Email/Password Authentication and Firestore in the intended Firebase project, then configure the frontend Firebase environment variables separately.
+
+Run the isolated Firestore Emulator tests from this backend directory:
 
 ```powershell
-firebase deploy --project boardease-project --only "firestore:rules,firestore:indexes"
+npm install
+npm run test:rules
 ```
 
-The backend rules are the deployment source. In this two-repository workspace the frontend Firebase configuration references these files; its rules copy is checked by the emulator tests to prevent drift.
+The tests use `demo-boardease`, the Firestore Emulator on `127.0.0.1:8085`, and the Storage Emulator on `127.0.0.1:9199`; they do not use `.firebaserc` or contact a live project. The emulators need Java 21. `firebase.test.json` is the test-only configuration. The backend `firebase.json` points to paths inside this project. The sibling frontend has a separate Firebase config; do not assume its relative rules or index paths resolve to this directory.
+
+## Project selection and deployment
+
+`.firebaserc` retains `boardease-project` as its existing default alias. Always pass an explicit project ID when using Firebase CLI commands. For a non-production project, deploy only the Firestore rules and indexes with:
+
+```powershell
+firebase deploy --project YOUR_NON_PRODUCTION_PROJECT_ID --only "firestore:rules,firestore:indexes"
+```
+
+Do not deploy Storage rules or Functions: the app does not use Storage, and its direct Firestore workflows overlap the optional Functions triggers. Reconcile those workflows and review billing before adding either service to a deployment config.
 
 Landlords must have server-issued custom claims. An email address or an editable profile role does not grant management access. Use a service-account credential outside the repository:
 
 ```powershell
 $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\service-account.json"
-npm run promote-admin -- admin@example.com
+npm run promote-admin -- admin@example.com --project YOUR_NON_PRODUCTION_PROJECT_ID --confirm-project YOUR_NON_PRODUCTION_PROJECT_ID
 ```
 
 Sign out and sign in again after promotion. From the landlord dashboard, open **Property Settings** and enter the actual caretaker contact, GCash receiver, house rules, and bulletin.
@@ -39,19 +52,20 @@ Tenants submit a deletion request from their profile. Management sees it in Tena
 The administrator can review a dry run:
 
 ```powershell
-npm run delete-account -- USER_ID --project boardease-project --email tenant@example.com
+npm run delete-account -- USER_ID --project YOUR_NON_PRODUCTION_PROJECT_ID --email tenant@example.com
 ```
 
-After reviewing the exact account and records, repeat with `--apply`. The command disables the account, revokes refresh tokens, deletes associated app data including subcollections, and deletes Authentication. A minimal UID tombstone remains to block existing tokens from recreating data. This command is irreversible when applied; it has not been run on any live account as part of these code changes.
+After reviewing the exact account and records, repeat with `--apply --confirm-project YOUR_NON_PRODUCTION_PROJECT_ID`. Applying against the configured production project also requires `--allow-production`. The command disables the account, revokes refresh tokens, deletes associated app data including subcollections, and deletes Authentication. A minimal UID tombstone remains to block existing tokens from recreating data. This command is irreversible; it has not been run against any live account.
 
 ## Verification
 
 Install dependencies and Java 21+, then run:
 
 ```powershell
+npm run lint
 npm run test:rules
 ```
 
-Tests use the isolated `demo-boardease` emulator on port 8085. They do not use the live project. If a previous emulator is still running, stop that test instance before rerunning. The frontend also has `npm test`, `npm run typecheck`, `npm run lint`, and `npx expo export --platform web`.
+Tests use the isolated `demo-boardease` emulator on port 8085. They do not use the live project. If a previous emulator is still running, stop that test instance before rerunning. The sibling frontend has its own `npm test`, `npm run typecheck`, and `npm run lint` commands; run those from the frontend directory when frontend changes are made.
 
-The optional `functions/` code is a separate future automation path and is not deployed by the Spark configuration.
+The optional `functions/` package uses Node.js 20 and has its own dependencies. Its source is retained for review but is not part of the configured deployment.
