@@ -165,6 +165,18 @@ test("room browsing and application queries work with owner filters", async () =
   await assertFails(updateDoc(doc(applicant,"applications","applicant__available-room-id"), { status:"approved" }));
   await assertFails(setDoc(doc(alice,"applications","alice__available-room-id"), { ...data, tenantId:"alice" }));
 });
+test("applications accept normalized room status and stringified numeric room numbers", async () => {
+  await setDoc(doc(admin,"rooms","mixed-case-room"), { number:"203", rent:"4200", type:"Room", status:"aVaIlAbLe" });
+  await setDoc(doc(admin,"rooms","numeric-room"), { number:204, rent:"4300", type:"Room", status:"available" });
+
+  const application = (roomId, roomNumber) => ({
+    tenantId:"applicant", tenantName:"Applicant", tenantEmail:"a@example.com",
+    roomId, roomNumber, roomType:"Room", price:"4200", image:"", status:"pending",
+    createdAt:serverTimestamp(),
+  });
+  await assertSucceeds(setDoc(doc(applicant,"applications","applicant__mixed-case-room"), application("mixed-case-room","203")));
+  await assertSucceeds(setDoc(doc(applicant,"applications","applicant__numeric-room"), application("numeric-room","204")));
+});
 test("concurrent application submissions share one stable document", async () => {
   const ref = doc(applicant,"applications","applicant__available-room-id");
   const submit = () => runTransaction(applicant, async tx => {

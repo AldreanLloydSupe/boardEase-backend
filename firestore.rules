@@ -13,7 +13,8 @@ service cloud.firestore {
       let room = get(/databases/$(database)/documents/rooms/$(data.roomId)).data;
       return owns(data) && id == request.auth.uid + '__' + data.roomId &&
         data.status == 'pending' && data.createdAt == request.time &&
-        room.status in ['Available','available'] && data.roomNumber == room.number &&
+        room.status is string && room.status.lower() == 'available' &&
+        (room.number is string || room.number is number) && data.roomNumber == string(room.number) &&
         data.keys().hasOnly(['tenantId','tenantName','tenantEmail','roomId','roomNumber','roomType','price','image','propertyName','location','floor','unit','requestedDate','note','status','createdAt']) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.hasRoom == false;
     }
