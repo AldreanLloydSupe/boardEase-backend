@@ -6,6 +6,8 @@ import { collection, deleteDoc, doc, getDoc, getDocs, query, runTransaction, ser
 import { getBytes, ref, uploadBytes } from "firebase/storage";
 let env;
 let alice, bob, applicant, admin;
+let aliceStorage, bobStorage, adminStorage;
+const storageBucket = "gs://demo-boardease.appspot.com";
 test("tenant direct chat is private and first message creates one real conversation", async () => {
   await assertSucceeds(getDoc(doc(alice, "conversations", "alice")));
   await assertSucceeds(getDocs(query(collection(alice, "conversations"), where("__name__", "==", "alice"))));
@@ -110,10 +112,17 @@ before(async () => {
   const rules = await readFile(new URL("../firestore.rules", import.meta.url), "utf8");
   const storageRules = await readFile(new URL("../storage.rules", import.meta.url), "utf8");
   env = await initializeTestEnvironment({ projectId: "demo-boardease", firestore: { rules, host:"127.0.0.1", port:8085 }, storage: { rules:storageRules, host:"127.0.0.1", port:9199 } });
-  alice = env.authenticatedContext("alice").firestore();
-  bob = env.authenticatedContext("bob").firestore();
-  applicant = env.authenticatedContext("applicant").firestore();
-  admin = env.authenticatedContext("manager", { admin: true, role: "landlord" }).firestore();
+  const aliceContext = env.authenticatedContext("alice");
+  const bobContext = env.authenticatedContext("bob");
+  const applicantContext = env.authenticatedContext("applicant");
+  const adminContext = env.authenticatedContext("manager", { admin: true, role: "landlord" });
+  alice = aliceContext.firestore();
+  bob = bobContext.firestore();
+  applicant = applicantContext.firestore();
+  admin = adminContext.firestore();
+  aliceStorage = aliceContext.storage(storageBucket);
+  bobStorage = bobContext.storage(storageBucket);
+  adminStorage = adminContext.storage(storageBucket);
 });
 beforeEach(async () => {
   await env.clearFirestore();
@@ -273,17 +282,14 @@ test("deactivated users cannot reuse an existing token to recreate profiles", as
   await assertFails(setDoc(doc(alice,"users","alice"),{ name:"Resurrected",role:"user",hasRoom:false }));
   await assertSucceeds(getDoc(doc(admin,"users","alice")));
 });
-test("unused Firebase Storage paths deny all client access", async () => {
+test("Firebase Storage keeps uploaded images private and validates uploads", async () => {
   const path = "payment-proofs/alice/receipt.jpg";
-  const aliceStorage = alice.storage("gs://demo-boardease.appspot.com");
-  const bobStorage = bob.storage("gs://demo-boardease.appspot.com");
-  const adminStorage = admin.storage("gs://demo-boardease.appspot.com");
   await env.withSecurityRulesDisabled(async context => {
-    await uploadBytes(ref(context.storage("gs://demo-boardease.appspot.com"),path),new Uint8Array([1,2,3]),{contentType:"image/jpeg"});
+    await uploadBytes(ref(context.storage(storageBucket),path),new Uint8Array([1,2,3]),{contentType:"image/jpeg"});
   });
-  await assertFails(uploadBytes(ref(aliceStorage,path),new Uint8Array([1,2,3]),{contentType:"image/jpeg"}));
-  await assertFails(getBytes(ref(aliceStorage,path)));
-  await assertFails(getBytes(ref(adminStorage,path)));
+  await assertSucceeds(uploadBytes(ref(aliceStorage,"payment-proofs/alice/new.jpg"),new Uint8Array([1,2,3]),{contentType:"image/jpeg"}));
+  await assertSucceeds(getBytes(ref(aliceStorage,path)));
+  await assertSucceeds(getBytes(ref(adminStorage,path)));
   await assertFails(getBytes(ref(bobStorage,path)));
   await assertFails(uploadBytes(ref(bobStorage,"payment-proofs/alice/forged.jpg"),new Uint8Array([1]),{contentType:"image/jpeg"}));
   await assertFails(uploadBytes(ref(aliceStorage,"payment-proofs/alice/not-image.txt"),new Uint8Array([1]),{contentType:"text/plain"}));

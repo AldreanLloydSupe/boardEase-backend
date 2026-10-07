@@ -2,6 +2,30 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function landlord() {
+      return signedIn() && (request.auth.token.get('admin', false) == true || request.auth.token.get('role', '') == 'landlord');
+    }
+    function imageUpload() {
+      return request.resource.size < 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+    match /profile-photos/{userId}/{fileName} {
+      allow read: if landlord() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId && imageUpload();
+    }
+    match /room-images/{roomId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if landlord() && imageUpload();
+    }
+    match /payment-proofs/{userId}/{fileName} {
+      allow read: if landlord() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId && imageUpload();
+    }
+    match /maintenance-photos/{userId}/{fileName} {
+      allow read: if landlord() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId && imageUpload();
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }

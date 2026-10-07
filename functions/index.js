@@ -33,6 +33,35 @@ async function notifyLandlords(data) {
   await Promise.all(ids.map((id) => notify(id, data)));
 }
 
+const auditFields = {
+  applications: ["status", "roomId", "roomNumber"],
+  maintenanceRequests: ["status", "priority"],
+  payments: ["status", "amount", "billingPeriod"],
+  meterReadings: [
+    "electricityPrevious",
+    "electricityCurrent",
+    "waterPrevious",
+    "waterCurrent",
+    "revisionNumber",
+  ],
+};
+
+async function auditChange(collectionName, documentId, before, after, event) {
+  const fields = auditFields[collectionName] || [];
+  const changed = fields.filter(
+    (field) => JSON.stringify(before?.[field]) !== JSON.stringify(after?.[field]),
+  );
+  if (!changed.length) return;
+  await db.collection("auditLogs").add({
+    action: "update",
+    collection: collectionName,
+    documentId,
+    changedFields: changed,
+    actorId: event.authId || "system",
+    createdAt: FieldValue.serverTimestamp(),
+  });
+}
+
 export const notifyApplicationCreated = onDocumentCreated("applications/{applicationId}", async (event) => {
   const application = event.data?.data();
   if (!application) return;
@@ -82,6 +111,35 @@ export const notifyMaintenanceUpdated = onDocumentUpdated("maintenanceRequests/{
   });
 });
 
+export const notifyMaintenanceMessageCreated = onDocumentCreated(
+  "maintenanceRequests/{requestId}/messages/{messageId}",
+  async (event) => {
+    const message = event.data?.data();
+    if (!message?.body) return;
+    const request = await db.collection("maintenanceRequests").doc(event.params.requestId).get();
+    const requestData = request.data();
+    if (!requestData) return;
+    const isTenantMessage = message.senderId === requestData.tenantId;
+    if (isTenantMessage) {
+      await notifyLandlords({
+        type: "maintenance_message",
+        title: "New maintenance reply",
+        body: `${requestData.tenantName || "A tenant"} replied to ${requestData.title || "a maintenance request"}.`,
+        sourceId: event.params.requestId,
+        route: "/landlord/requests",
+      });
+    } else if (requestData.tenantId) {
+      await notify(requestData.tenantId, {
+        type: "maintenance_message",
+        title: "New maintenance message",
+        body: `Management replied to ${requestData.title || "your maintenance request"}.`,
+        sourceId: event.params.requestId,
+        route: "/tenant/applications",
+      });
+    }
+  },
+);
+
 export const notifyPaymentCreated = onDocumentCreated("payments/{paymentId}", async (event) => {
   const payment = event.data?.data();
   if (!payment) return;
@@ -104,6 +162,32 @@ export const notifyPaymentUpdated = onDocumentUpdated("payments/{paymentId}", as
     body: `Your payment proof was ${after.status || "updated"}.`,
     sourceId: event.params.paymentId,
     route: "/tenant/payments",
+  });
+});
+
+export const notifyApplicationUpdated = onDocumentUpdated("applications/{applicationId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after || before.status === after.status || !after.tenantId) return;
+  await notify(after.tenantId, {
+    type: "application_update",
+    title: after.status === "rejected" ? "Application update" : "Application status changed",
+    body: `Your application for Room ${after.roomNumber || "your requested room"} is ${after.status}.`,
+    sourceId: event.params.applicationId,
+    route: "/tenant/applications",
+  });
+});
+
+export const notifyTourUpdated = onDocumentUpdated("tourRequests/{tourRequestId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after || before.status === after.status || !after.tenantId) return;
+  await notify(after.tenantId, {
+    type: "tour_update",
+    title: "Tour request updated",
+    body: `Your tour request is now ${String(after.status).replaceAll("_", " ")}.`,
+    sourceId: event.params.tourRequestId,
+    route: "/tenant/applications",
   });
 });
 
@@ -166,18 +250,50 @@ export const sendRentReminders = onSchedule("every day 08:00", async () => {
   const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const batch = db.batch();
   users.docs.forEach((user) => {
-    const dueDay = Number(user.data().rentDueDay || 5);
+    const profile = user.data();
+    if (profile.paymentReminders === false) return;
+    const dueDay = Number(profile.rentDueDay || 5);
     const daysUntilDue = dueDay - now.getUTCDate();
-    if (![7, 3, 1, 0].includes(daysUntilDue)) return;
+    const configuredTiming = Number(profile.reminderTiming || 3);
+    const reminderDays = [1, 3, 7].includes(configuredTiming) ? configuredTiming : 3;
+    const overdue = daysUntilDue < 0;
+    if (!overdue && ![reminderDays, 0].includes(daysUntilDue)) return;
     const ref = db.collection("notifications").doc(`rent-${user.id}-${monthKey}-${dueDay}`);
     batch.set(ref, {
       recipientId: user.id,
-      type: daysUntilDue === 0 ? "rent_due" : "rent_reminder",
-      title: daysUntilDue === 0 ? "Rent is due today" : "Rent payment reminder",
-      body: `Your rent is due on the ${dueDay}${dueDay === 1 ? "st" : dueDay === 2 ? "nd" : dueDay === 3 ? "rd" : "th"} of the month.`,
+      type: overdue ? "rent_overdue" : daysUntilDue === 0 ? "rent_due" : "rent_reminder",
+      title: overdue ? "Rent payment overdue" : daysUntilDue === 0 ? "Rent is due today" : "Rent payment reminder",
+      body: overdue
+        ? `Your rent was due on the ${dueDay}. Please submit your payment proof.`
+        : `Your rent is due on the ${dueDay}${dueDay === 1 ? "st" : dueDay === 2 ? "nd" : dueDay === 3 ? "rd" : "th"} of the month.`,
       read: false,
       createdAt: Timestamp.now(),
     }, { merge: true });
   });
   await batch.commit();
 });
+
+export const auditApplicationChanges = onDocumentUpdated("applications/{applicationId}", async (event) => {
+  await auditChange("applications", event.params.applicationId, event.data?.before.data(), event.data?.after.data(), event);
+});
+
+export const auditMaintenanceChanges = onDocumentUpdated("maintenanceRequests/{requestId}", async (event) => {
+  await auditChange("maintenanceRequests", event.params.requestId, event.data?.before.data(), event.data?.after.data(), event);
+});
+
+export const auditPaymentChanges = onDocumentUpdated("payments/{paymentId}", async (event) => {
+  await auditChange("payments", event.params.paymentId, event.data?.before.data(), event.data?.after.data(), event);
+});
+
+export const auditMeterChanges = onDocumentUpdated(
+  "rooms/{roomId}/meterReadings/{period}",
+  async (event) => {
+    await auditChange(
+      "meterReadings",
+      `${event.params.roomId}/${event.params.period}`,
+      event.data?.before.data(),
+      event.data?.after.data(),
+      event,
+    );
+  },
+);
