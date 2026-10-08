@@ -1,20 +1,34 @@
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 
 initializeApp();
 setGlobalOptions({ region: "asia-southeast1", maxInstances: 10 });
 
 const db = getFirestore();
+const bucket = getStorage().bucket();
+
+async function deleteStoragePrefix(prefix) {
+  await bucket.deleteFiles({ prefix });
+}
 
 async function landlordIds() {
-  const listedUsers = await getAuth().listUsers(1000);
-  return listedUsers.users
-    .filter((user) => user.customClaims?.admin === true || user.customClaims?.role === "landlord")
-    .map((user) => user.uid);
+  const ids = [];
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    ids.push(
+      ...page.users
+        .filter((user) => user.customClaims?.admin === true || user.customClaims?.role === "landlord")
+        .map((user) => user.uid),
+    );
+    pageToken = page.pageToken;
+  } while (pageToken);
+  return ids;
 }
 
 async function notify(recipientId, data) {
@@ -52,12 +66,19 @@ async function auditChange(collectionName, documentId, before, after, event) {
     (field) => JSON.stringify(before?.[field]) !== JSON.stringify(after?.[field]),
   );
   if (!changed.length) return;
+  const actorId =
+    after?.updatedBy ||
+    after?.updatedByUid ||
+    after?.approvedBy ||
+    after?.rejectedBy ||
+    event.authId ||
+    "system";
   await db.collection("auditLogs").add({
     action: "update",
     collection: collectionName,
     documentId,
     changedFields: changed,
-    actorId: event.authId || "system",
+    actorId,
     createdAt: FieldValue.serverTimestamp(),
   });
 }
@@ -191,6 +212,31 @@ export const notifyTourUpdated = onDocumentUpdated("tourRequests/{tourRequestId}
   });
 });
 
+export const cleanupDeletedProfilePhoto = onDocumentDeleted("users/{userId}", async (event) => {
+  await deleteStoragePrefix(`profile-photos/${event.params.userId}/`);
+});
+
+export const cleanupDeletedRoomImage = onDocumentDeleted("rooms/{roomId}", async (event) => {
+  await deleteStoragePrefix(`room-images/${event.params.roomId}/`);
+});
+
+export const cleanupDeletedPaymentProof = onDocumentDeleted("payments/{paymentId}", async (event) => {
+  const payment = event.data?.data();
+  if (payment?.tenantId) {
+    await deleteStoragePrefix(`payment-proofs/${payment.tenantId}/${event.params.paymentId}`);
+  }
+});
+
+export const cleanupDeletedMaintenancePhoto = onDocumentDeleted(
+  "maintenanceRequests/{requestId}",
+  async (event) => {
+    const request = event.data?.data();
+    if (request?.tenantId) {
+      await deleteStoragePrefix(`maintenance-photos/${request.tenantId}/${event.params.requestId}`);
+    }
+  },
+);
+
 export const assignApprovedApplication = onDocumentUpdated("applications/{applicationId}", async (event) => {
   const before = event.data?.before.data();
   const application = event.data?.after.data();
@@ -226,7 +272,7 @@ export const assignApprovedApplication = onDocumentUpdated("applications/{applic
     }, { merge: true });
     transaction.set(tenantRef, {
       hasRoom: true,
-      roomId: String(application.roomNumber),
+      roomId: String(application.roomId),
       roomNumber: String(application.roomNumber),
       roomType: application.roomType || "Room",
       roomRent: application.price || "0",
@@ -246,19 +292,43 @@ export const assignApprovedApplication = onDocumentUpdated("applications/{applic
 
 export const sendRentReminders = onSchedule("every day 08:00", async () => {
   const users = await db.collection("users").where("hasRoom", "==", true).get();
+  const payments = await db.collection("payments").where("billingPeriod", "==", monthKeyFor(new Date())).get();
+  const paidByTenant = new Map();
+  payments.docs.forEach((payment) => {
+    const data = payment.data();
+    if (data.status !== "approved" || !data.tenantId) return;
+    const amount = Number(String(data.amount || 0).replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const current = paidByTenant.get(data.tenantId) || [];
+    current.push({ amount, roomId: data.roomId, roomNumber: data.roomNumber });
+    paidByTenant.set(data.tenantId, current);
+  });
   const now = new Date();
-  const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const monthKey = monthKeyFor(now);
   const batch = db.batch();
-  users.docs.forEach((user) => {
+  for (const user of users.docs) {
     const profile = user.data();
-    if (profile.paymentReminders === false) return;
+    if (profile.paymentReminders === false) continue;
+    const rent = Number(String(profile.roomRent || 0).replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(rent) || rent <= 0) continue;
+    const paid = (paidByTenant.get(user.id) || [])
+      .filter((payment) =>
+        !profile.roomId ||
+        !payment.roomId ||
+        String(payment.roomId) === String(profile.roomId) ||
+        String(payment.roomNumber) === String(profile.roomNumber),
+      )
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    if (paid >= rent) continue;
     const dueDay = Number(profile.rentDueDay || 5);
     const daysUntilDue = dueDay - now.getUTCDate();
     const configuredTiming = Number(profile.reminderTiming || 3);
     const reminderDays = [1, 3, 7].includes(configuredTiming) ? configuredTiming : 3;
     const overdue = daysUntilDue < 0;
-    if (!overdue && ![reminderDays, 0].includes(daysUntilDue)) return;
+    if (!overdue && ![reminderDays, 0].includes(daysUntilDue)) continue;
     const ref = db.collection("notifications").doc(`rent-${user.id}-${monthKey}-${dueDay}`);
+    const existing = await ref.get();
+    if (existing.exists && existing.data()?.read === true) continue;
     batch.set(ref, {
       recipientId: user.id,
       type: overdue ? "rent_overdue" : daysUntilDue === 0 ? "rent_due" : "rent_reminder",
@@ -269,9 +339,13 @@ export const sendRentReminders = onSchedule("every day 08:00", async () => {
       read: false,
       createdAt: Timestamp.now(),
     }, { merge: true });
-  });
+  }
   await batch.commit();
 });
+
+function monthKeyFor(date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 export const auditApplicationChanges = onDocumentUpdated("applications/{applicationId}", async (event) => {
   await auditChange("applications", event.params.applicationId, event.data?.before.data(), event.data?.after.data(), event);
